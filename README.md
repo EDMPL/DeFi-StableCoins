@@ -1,12 +1,18 @@
-# DeFI Implementation #
+# DeFI Stablecoin Implementation #
 
-Create a stablecoins that fullfill these criteria:
+### Create a stablecoins that fullfill these criteria: ###
 
-1. Relative Stabilitiy: Pegged/Anchored -> $1.00
+__a. Relative Stabilitiy: Pegged/Anchored -> $1.00__
+
     1. Chainlink Pricefeed
     2. Exchange ETH & BTC -> $$$$
-2. Stability Mechanism (Minting): Algorithmic (Decentralized)
-    1. People can only mint the stablecoins with enough collateral (coded)
-3. Collateral: Exogenous (Crypto)
+
+__b. Stability Mechanism (Minting): Algorithmic (Decentralized)__
+
+    1. People can only mint the stablecoins with enough collateral (coded).
+    2. Total collateral should always more than total minted coins.
+
+__c. Collateral: Exogenous (Crypto)__
+
     1. wETH
     2. wBTC
