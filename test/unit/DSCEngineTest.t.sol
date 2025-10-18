@@ -15,6 +15,7 @@ contract DSCEngineTest is Test {
     DSCEngine engine;
     HelperConfig config;
     address ethUsdPriceFeed;
+    address btcUsdPriceFeed;
     address weth;
     uint256 public constant AMOUNT_COLLATERAL = 10 ether;
     uint256 public constant STARTING_ERC20_BALANCE = 10 ether;
@@ -25,9 +26,23 @@ contract DSCEngineTest is Test {
     function setUp() public {
         deployer = new DeployDSC();
         (engine, config) = deployer.run();
-        (ethUsdPriceFeed,,weth,,) = config.activeNetworkConfig();
+        (ethUsdPriceFeed,btcUsdPriceFeed,weth,,) = config.activeNetworkConfig();
 
         ERC20Mock(weth).mint(USER, STARTING_ERC20_BALANCE);
+    }
+
+
+    address[] public tokenAddresses;
+    address[] public priceFeedAddresses;
+
+    function testRevertsIfTokenLengthDoesntMatchPriceFeeds() public {
+        tokenAddresses.push(weth);
+        priceFeedAddresses.push(ethUsdPriceFeed);
+        priceFeedAddresses.push(btcUsdPriceFeed);
+
+        vm.expectRevert(DSCEngine.DSCEngine__TokenAddressAndPriceFeedAddressLengthMustBeTheSame.selector);
+        new DSCEngine(tokenAddresses, priceFeedAddresses);
+
     }
 
     function testGetUSDValue() public view {
