@@ -13,6 +13,8 @@ __b. Stability Mechanism (Minting): Algorithmic (Decentralized)__
     2. Total collateral should always more than total minted coins.
 
 __c. Collateral: Exogenous (Crypto)__
+
     People can deposit two types of collateral:
+
     1. wETH
     2. wBTC
