@@ -42,8 +42,6 @@ contract DSCEngine is ReentrancyGuard{
     uint256 private constant MIN_HEALTH_FACTOR = 1;
 
 
-
-
     mapping(address token => address priceFeed) private s_priceFeeds;
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
     mapping(address user => uint256 amountDscMinted) s_dscMinted;
@@ -80,7 +78,16 @@ contract DSCEngine is ReentrancyGuard{
         _;
     }
 
-    function depositCollateralAndMintDsc() external {}
+    /*
+     * @param tokenCollateralAddress The address of the token to deposit as collateral
+     * @param amountCollateral The amount of collateral to deposit
+     * @param amountDscToMint The amomunt of DSC to be minted
+     * @notice this function will deposit user collateral and mint Dsc in one function
+     */
+    function depositCollateralAndMintDsc(address tokenCollateralAddress, uint256 amountCollateral, uint256 amountDscToMint) external {
+        depositCollateral(tokenCollateralAddress, amountCollateral);
+        mintDsc(amountDscToMint);
+    }
 
     /*
      * @notice Follows CEI
@@ -90,7 +97,7 @@ contract DSCEngine is ReentrancyGuard{
     function depositCollateral(
         address tokenCollateralAddress,
         uint256 amountCollateral
-    ) external moreThanZero(amountCollateral) isAllowedToken(tokenCollateralAddress) nonReentrant {
+    ) public moreThanZero(amountCollateral) isAllowedToken(tokenCollateralAddress) nonReentrant {
         s_collateralDeposited[msg.sender][tokenCollateralAddress] += amountCollateral;
         emit CollateralDeposited(msg.sender, tokenCollateralAddress, amountCollateral);
         bool success = IERC20(tokenCollateralAddress).transferFrom(msg.sender, address(this), amountCollateral);
@@ -105,7 +112,7 @@ contract DSCEngine is ReentrancyGuard{
      * @notice Follows CEI
      * @param amountDscToMint The amomunt of DSC to be minted
      */
-    function mintDsc(uint256 amountDscToMint) external moreThanZero(amountDscToMint) nonReentrant {
+    function mintDsc(uint256 amountDscToMint) public moreThanZero(amountDscToMint) nonReentrant {
         s_dscMinted[msg.sender] += amountDscToMint;
         revertIfHealthFactorIsBroken(msg.sender);
         bool minted = i_dsc.mint(msg.sender, amountDscToMint);
