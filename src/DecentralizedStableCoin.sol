@@ -4,6 +4,8 @@ pragma solidity ^0.8.19;
 import {ERC20, ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
+
+
 /*
  * @title DecentralizedStableCoin
  * @author Jeremia Geraldi
@@ -13,9 +15,12 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  *
  * This contract is meant to be governed by DSCEngine.
  * It implements the ERC20 logic for the decentralized stablecoin system.
+ * 
+ * @notice This contract is using AccessControl module from OpenZeppelin for Authorization Check.
  */
 
 contract DecentralizedStableCoin is ERC20Burnable, AccessControl {
+
     // ====== Custom Errors ======
     error DecentralizedStableCoin__MustBeMoreThanZero();
     error DecentralizedStableCoin__BalanceLessThanAmountBurned();
@@ -25,11 +30,19 @@ contract DecentralizedStableCoin is ERC20Burnable, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
+
     // ====== Constructor ======
     constructor(address admin) ERC20("Decentralized Stable Coins", "DSC") {
-        // The deployer (admin) gets admin role
+        // The deployer (admin) gets admin role with the rights to mint and burn token
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(MINTER_ROLE, admin);
+        _grantRole(BURNER_ROLE, admin);
     }
+
+    // This function is used for testing purpose.
+    // function grantAdminRole(address user) external onlyEngine onlyRole(DEFAULT_ADMIN_ROLE){
+    //     _grantRole(DEFAULT_ADMIN_ROLE, user);
+    // }
 
     // ====== External Mint Function ======
     function mint(address _to, uint256 _amount) external onlyRole(MINTER_ROLE) returns (bool) {

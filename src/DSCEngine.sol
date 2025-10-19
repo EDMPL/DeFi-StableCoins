@@ -36,6 +36,7 @@ contract DSCEngine is ReentrancyGuard{
     error DSC__MintedFailed();
     error DSCEngine__HealthFactorIsOK();
     error DSCEngine__HealthFactorNotImproved();
+    error DSCEngine__UnauthorizedCaller();
 
     uint256 private constant ADDITIONAL_FEE_PRECISION = 1e10;
     uint256 private constant FEE_PRECISION = 1e18;
@@ -47,7 +48,7 @@ contract DSCEngine is ReentrancyGuard{
 
     mapping(address token => address priceFeed) private s_priceFeeds;
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
-    mapping(address user => uint256 amountDscMinted) s_dscMinted;
+    mapping(address user => uint256 amountDscMinted) public s_dscMinted;
     address[] private s_collateralTokens;
 
     DecentralizedStableCoin private immutable i_dsc;
@@ -241,5 +242,10 @@ contract DSCEngine is ReentrancyGuard{
         (,int256 price,,,) = priceFeed.latestRoundData();
         // The returned value from chainlink will be 1e8 for ETH and BTC
         return ((uint256(price) * ADDITIONAL_FEE_PRECISION) * amount) / FEE_PRECISION;
+    }
+
+    function getAccountInformation(address user) external view returns(uint256 totalDscMinted, uint256 collateralValueInUSD){
+        (totalDscMinted, collateralValueInUSD) = _getAccountInformation(user);
+        return(totalDscMinted, collateralValueInUSD);
     }
 }
