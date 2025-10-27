@@ -18,3 +18,11 @@ __c. Collateral: Exogenous (Crypto)__
 
     1. wETH
     2. wBTC
+
+### Test Done: ###
+1. Unit Test
+2. Fuzzing Test (Invariant)
+
+### Test Converage: ###
+
+![Coverage](img/coverage.png)

@@ -7,6 +7,8 @@ import {Test, console} from "forge-std/Test.sol";
 import {DSCEngine} from "src/DSCEngine.sol";
 import {DecentralizedStableCoin} from "src/DecentralizedStableCoin.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {MockV3Aggregator} from "test/mocks/MockV3Aggregator.sol";
+
 
 contract Handler is Test{
     DSCEngine engine;
@@ -22,6 +24,7 @@ contract Handler is Test{
 
 
     address[] public usersWithCollateral;
+    MockV3Aggregator public ethUsdPriceFeed;
 
     constructor(DSCEngine _engine, DecentralizedStableCoin _dsc){
         engine = _engine;
@@ -31,6 +34,9 @@ contract Handler is Test{
 
         weth = ERC20Mock(collateralTokens[0]);
         wbtc = ERC20Mock(collateralTokens[1]);
+
+        ethUsdPriceFeed = MockV3Aggregator(engine.getCollateralTokenPriceFeed(address(weth)));
+
 
         timeMintIsCalled = 0;
         timeDepositIsCalled = 0;
@@ -46,10 +52,9 @@ contract Handler is Test{
         collateral.approve(address(engine), amountCollateral);
         engine.depositCollateral(address(collateral), amountCollateral);
         vm.stopPrank();
-        usersWithCollateral.push(msg.sender);
-        // if (engine.getCollateralDeposited(msg.sender, address(collateral)) > 0){
-            
-        // }
+        if (engine.getCollateralDeposited(msg.sender, address(collateral)) > 0){
+            usersWithCollateral.push(msg.sender);
+        }
         timeDepositIsCalled++;
     }
 
@@ -95,6 +100,13 @@ contract Handler is Test{
         vm.stopPrank();
         timeMintIsCalled++;
     }
+
+
+    // THIS BREAKS OUR INVARIANT TEST SUITE!!!
+    // function updateCollateralPriceFeed(uint96 newPrice) public {
+    //     int256 newPriceInt = int256(uint256(newPrice));
+    //     ethUsdPriceFeed.updateAnswer(newPriceInt);
+    // }
 
     function _getCollateralFromSeed(uint256 collateralSeed) private view returns (ERC20Mock){
         if (collateralSeed % 2 == 0){

@@ -8,6 +8,9 @@ import {DecentralizedStableCoin} from "src/DecentralizedStableCoin.sol";
 import {DSCEngine} from "src/DSCEngine.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
 import {ERC20Mock} from "test/mocks/ERC20Mock.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {MockV3Aggregator} from "test/mocks/MockV3Aggregator.sol";
+
 
 contract DSCEngineTest is Test {
     DeployDSC deployer;
@@ -36,7 +39,7 @@ contract DSCEngineTest is Test {
         (engine, config) = deployer.run();
         (ethUsdPriceFeed,btcUsdPriceFeed,weth,,) = config.activeNetworkConfig();
         ERC20Mock(weth).mint(USER, STARTING_ERC20_BALANCE);
-        ERC20Mock(weth).mint(ADMIN, STARTING_ERC20_BALANCE);
+        ERC20Mock(weth).mint(ADMIN, (STARTING_ERC20_BALANCE * 5));
         ERC20Mock(weth).mint(address(engine), STARTING_ERC20_BALANCE);
     }
 
@@ -266,6 +269,14 @@ contract DSCEngineTest is Test {
         assertEq(collateralValueInUSD, expectedCollateralValue);
     }
 
+    function testDepositFailsIfCollateralNotApproved() public {
+        ERC20Mock testToken = new ERC20Mock("TEST", "TEST", USER, STARTING_ERC20_BALANCE);
+        vm.startPrank(USER);
+        vm.expectRevert(DSCEngine.DSC__NotAllowedToken.selector);
+        engine.depositCollateral(address(testToken), AMOUNT_COLLATERAL);
+        vm.stopPrank();
+    }
+
 
     function testLiquidateFailsIfHealthFactorIsAboveThreshold() public depositCollateral(USER) {
         vm.startPrank(USER);
@@ -327,12 +338,39 @@ contract DSCEngineTest is Test {
         vm.stopPrank();
     }
 
-    function testDepositFailsIfCollateralNotApproved() public {
-        ERC20Mock testToken = new ERC20Mock("TEST", "TEST", USER, STARTING_ERC20_BALANCE);
+
+
+    function testLiquidateDebtedUserHealthFactorIsBetter() public depositCollateral(ADMIN) depositCollateral(USER){
+        uint256 adminBalance = engine.getCollateralDeposited(ADMIN, weth);
+        console.log("adminBalance: ", adminBalance);
+
+        dsc = DecentralizedStableCoin(engine.getDscAddress());
         vm.startPrank(USER);
-        vm.expectRevert(DSCEngine.DSC__NotAllowedToken.selector);
-        engine.depositCollateral(address(testToken), AMOUNT_COLLATERAL);
+        // (2e22 * 5e17) / 1e18 = 1e40 / 1e18 = 1e22
+        // (1e22 * 1e18) / 1e23 = 1e40 / 1e23 = 1e17
+        // 1e17 < 1e18
+        // vm.expectRevert(abi.encodeWithSelector(
+        //     DSCEngine.DSCEngine__BreaksHealthFactor.selector,
+        //     100000000000000000 // 1e17
+        // ));
+        engine.mintDsc(10000);
         vm.stopPrank();
+
+        vm.startPrank(address(engine));
+        dsc.mint(ADMIN, 10000 * 1e18);
+        vm.stopPrank();
+
+        // Simulate market crash (collateral value drops)
+        MockV3Aggregator(ethUsdPriceFeed).updateAnswer(1000e8); // ETH from 2000 -> 500 USD
+
+        uint256 initialHealthFactor = engine.getHealthFactor(USER);
+        console.log("initialHealthFactor: ", initialHealthFactor);
+        vm.startPrank(ADMIN);
+        dsc.approve(address(engine), 1);
+        engine.liquidate(weth, USER, 1);
+        vm.stopPrank();
+        uint256 endingHealthFactor = engine.getHealthFactor(USER);
+        assertGt(endingHealthFactor, initialHealthFactor);
     }
 
     // function testLiquidateEmitsEvent() public depositCollateral(USER) {
